@@ -1,0 +1,18 @@
+{% extends "machine_learning/base.html" %}
+{% block details %}
+<article class="media content-section">
+    <img class="rounded-circle article-img" src="{{ object.created_by.profile.image.url }}"> <!-- To display image on home page with details--> 
+    <div class="media-body">
+    <div class="article-metadata">
+        <h3>{{ object.model_name }} <small class="text-muted">{{ object.create_date|date:"F d, Y" }}</small></h3>  
+        <p><b>Model Description:</b> {{ object.description }}</p>
+        
+        {% if object.created_by == user %}
+            <a class="btn btn-secondary btn-sm mt-1 mb-1" href="{% url 'machine_learning-update' object.id %}">Update</a>
+            <a class="btn btn-danger btn-sm mt-1 mb-1" href="{% url 'machine_learning-delete' object.id %}">Delete</a>
+            <a class="btn btn-outline-info btn-sm mt-1 mb-1" href="{% url 'machine_learning-execute' %}">Execute</a> 
+        {% endif %}
+    </div>
+    </div>
+</article>
+{% endblock details %}

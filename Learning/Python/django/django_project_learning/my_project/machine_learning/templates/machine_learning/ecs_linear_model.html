@@ -1,0 +1,12 @@
+{% extends "machine_learning/base.html" %}
+{% block details %}
+<div>
+    <h2>Ecommerce Customer Shopping Model Results</h2>
+    <table class="table table-striped">
+        {% for key,value in content.items %}
+            <tr><td>{{ key }}</td> <td>  {{ value }}</td>  </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% endblock details %}

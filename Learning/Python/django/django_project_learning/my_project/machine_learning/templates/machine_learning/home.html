@@ -1,0 +1,15 @@
+{% extends "machine_learning/base.html" %}
+{% block details %}
+    <h2>Machine Learning Models</h2>
+    {% for detail in model_list %}
+        <article class="media content-section">
+            <img class="rounded-circle article-img" src="{{ detail.created_by.profile.image.url }}"> <!-- To display image on home page with details--> 
+            <div class="media-body">
+                <div class="article-metadata">
+                    <h2><a class="article-title" href="{% url 'machine_learning-detail' detail.id %}">{{ detail.model_name }}</a></h2>  
+                    <small class="text-muted">{{ detail.create_date|date:"F d, Y" }}</small>
+                </div>
+            </div>
+        </article>
+    {% endfor %}
+{% endblock details %}
