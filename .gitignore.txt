@@ -1,0 +1,14 @@
+# Virtual environment
+Python/.venv/
+venv/
+env/
+.venv/
+
+# Compiled files
+*.pyc
+__pycache__/
+
+# Local configuration
+.env
+.env.local
+*.ppt*
