@@ -7,6 +7,7 @@ import pandas as pd
 import subprocess
 from pathlib import Path
 import json
+import shutil
 
 # Supported media file extensions
 MEDIA_EXTENSIONS = (".jpg", ".jpeg", ".png", ".mp4", ".mov", ".avi", ".mkv")
@@ -106,17 +107,54 @@ def get_distinct_folder_Name(media_files_df):
 def get_filtered_folder_names():
     load_filter_df = read_Group_Filter()
     filtered_df= load_filter_df[load_filter_df['Required']=='Y']
+    print(filtered_df)
     return filtered_df
 
-def assign_groups_to_filtered_folders(media_files_df):
+def assign_groups_to_filtered_folders(media_files_df,filtered_df):
+    # Normalize keys first (recommended)
+    media_files_df['_key']= media_files_df['BaseFolder'].astype(str).str.strip()
+    filtered_df['filter_key']= filtered_df['unique_folders'].astype(str).str.strip()
     merged_df = pd.merge(
-                    media_files_df,
-                    get_filtered_folder_names(),
+                    media_files_df[['FilePath','BaseFolder','_key']],
+                    filtered_df[['unique_folders','Group','Required','filter_key']],
                     how='left',                      # keep all rows from main_data
-                    left_on='FilePath',
-                    right_on='unique_folders'
+                    left_on='_key',
+                    right_on='filter_key', indicator=True
                 )
-    return merged_df
+    
+    # Clean up
+    # merged_df[merged_df['Required']!='Y'].drop(inplace=True)
+
+    # Fill missing group/required values
+    # merged_df['Group'] = merged_df['Group'].fillna('N/A')
+    # merged_df['Required'] = merged_df['Required'].fillna('N')
+    selected_df = merged_df[merged_df['Required']=='Y']
+    return selected_df
+
+# def get_copy_files_dir():
+
+def copy_selected_files(selected_groups_paths):
+    
+    # Copy files by group
+    for _, row in selected_groups_paths.iterrows():
+        src = row['FilePath']
+        group = row['Group']
+        dest_folder = os.path.join(get_base_folder_path(), f"Temp_{group}")
+
+        # Ensure group folder exists
+        os.makedirs(dest_folder, exist_ok=True)
+
+        # Build destination file path
+        dest = os.path.join(dest_folder, os.path.basename(src))
+
+        # Copy the file (with metadata)
+        try:
+            shutil.copy2(src, dest)
+            print(f"Copied: {src} → {dest}")
+        except Exception as e:
+            print(f"Failed to copy {src}: {e}")
+
+        print("\nAll files copied by group successfully!")
 
 def generateFile(media_files_df):
     with pd.ExcelWriter("FinalFile.xlsx", engine='openpyxl') as writer:
@@ -127,12 +165,15 @@ def generateFile(media_files_df):
         get_distinct_folder_Name(media_files_df).to_excel(writer,sheet_name='unique_folders', index=False)
 
         print("Writing filtered folder names to excel...")
-        get_filtered_folder_names().to_excel(writer,sheet_name='filtered_folders', index=False)
+        filtered_df= get_filtered_folder_names()
+        filtered_df.to_excel(writer,sheet_name='filtered_folders', index=False)
 
         print("Writing assign_groups_to_filtered_folders to excel...")
-        assign_groups_to_filtered_folders(media_files_df).to_excel(writer,sheet_name='asigned_groups', index=False)
+        selected_groups_paths=assign_groups_to_filtered_folders(media_files_df,filtered_df)
+        selected_groups_paths.to_excel(writer,sheet_name='asigned_groups', index=False)
 
-        
+        print("Copying selected media items to new folder")
+        copy_selected_files(selected_groups_paths)
 
 def main():
     print("Hello from my-photos-media!")
