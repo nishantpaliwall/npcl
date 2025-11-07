@@ -46,7 +46,11 @@ def get_csv_file_name():
     output_csv = f"{base_folder_name}_media_list.csv"
     return output_csv
 
+def read_excel_to_df(ExcelFile):
+    return pd.read_excel(ExcelFile)
 
+def read_Group_Filter():
+    return read_excel_to_df(r"C:\Users\lenovo\OneDrive\Documents\GroupFilter.xlsx")
 
 def create_csv(media_files_df):
     """Save DataFrame to CSV with the base folder name."""
@@ -98,6 +102,22 @@ def get_distinct_folder_Name(media_files_df):
     unique_folders = pd.DataFrame(media_files_df['BaseFolder'].unique(),columns=['unique_folders'])
     return unique_folders
 
+
+def get_filtered_folder_names():
+    load_filter_df = read_Group_Filter()
+    filtered_df= load_filter_df[load_filter_df['Required']=='Y']
+    return filtered_df
+
+def assign_groups_to_filtered_folders(media_files_df):
+    merged_df = pd.merge(
+                    media_files_df,
+                    get_filtered_folder_names(),
+                    how='left',                      # keep all rows from main_data
+                    left_on='FilePath',
+                    right_on='unique_folders'
+                )
+    return merged_df
+
 def generateFile(media_files_df):
     with pd.ExcelWriter("FinalFile.xlsx", engine='openpyxl') as writer:
         print("Writing All-Files to excel...")
@@ -106,6 +126,13 @@ def generateFile(media_files_df):
         print("Writing distinct folder names to excel...")
         get_distinct_folder_Name(media_files_df).to_excel(writer,sheet_name='unique_folders', index=False)
 
+        print("Writing filtered folder names to excel...")
+        get_filtered_folder_names().to_excel(writer,sheet_name='filtered_folders', index=False)
+
+        print("Writing assign_groups_to_filtered_folders to excel...")
+        assign_groups_to_filtered_folders(media_files_df).to_excel(writer,sheet_name='asigned_groups', index=False)
+
+        
 
 def main():
     print("Hello from my-photos-media!")
