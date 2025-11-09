@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 import json
 import shutil
+import re
 
 # Supported media file extensions
 MEDIA_EXTENSIONS = (".jpg", ".jpeg", ".png", ".mp4", ".mov", ".avi", ".mkv")
@@ -24,6 +25,15 @@ def get_base_folder_path():
         sys.exit(1)
 
     return base_folder
+
+def is_pattern_search():
+    return len(sys.argv) > 2
+ 
+def get_filepath_pattern():
+    if is_pattern_search():
+        return f".*{sys.argv[2]}.*"
+    else :
+        return "====== No Matcing pattern provided ======"
 
 def get_media_files(base_folder):
     """Recursively get all media files under a folder."""
@@ -131,7 +141,16 @@ def assign_groups_to_filtered_folders(media_files_df,filtered_df):
     selected_df = merged_df[merged_df['Required']=='Y']
     return selected_df
 
-# def get_copy_files_dir():
+def match_any(pattern):
+    return re.search(pattern=pattern,)
+
+def select_matching_files(media_files_df):
+    pattern = get_filepath_pattern()
+    media_files_df['is_maching_pattern'] = media_files_df['FilePath'].apply(lambda x: True if re.search(pattern, x,re.IGNORECASE) else False)
+    # This column has been created to generate single folder for all the files while patern search
+    media_files_df['Group'] = "PATTERN_SEARCH"
+    return media_files_df[media_files_df['is_maching_pattern']]
+
 
 def copy_selected_files(selected_groups_paths):
     
@@ -154,7 +173,7 @@ def copy_selected_files(selected_groups_paths):
         except Exception as e:
             print(f"Failed to copy {src}: {e}")
 
-        print("\nAll files copied by group successfully!")
+    print("\nAll files copied by group successfully!")    
 
 def generateFile(media_files_df):
     with pd.ExcelWriter("FinalFile.xlsx", engine='openpyxl') as writer:
@@ -172,8 +191,14 @@ def generateFile(media_files_df):
         selected_groups_paths=assign_groups_to_filtered_folders(media_files_df,filtered_df)
         selected_groups_paths.to_excel(writer,sheet_name='asigned_groups', index=False)
 
+        print("Writing pattern matching file path to excel...")
+        pattern_match__paths=select_matching_files(media_files_df)
+        pattern_match__paths.to_excel(writer,sheet_name='pattern_match', index=False)
+        
+
         print("Copying selected media items to new folder")
-        copy_selected_files(selected_groups_paths)
+        df = pattern_match__paths if is_pattern_search() else selected_groups_paths
+        copy_selected_files(df)
 
 def main():
     print("Hello from my-photos-media!")
